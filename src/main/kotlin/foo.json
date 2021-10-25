@@ -1,0 +1,15 @@
+{
+  "reference":"Genesis 1:1",
+  "verses":
+  [
+    {"book_id":"GEN",
+      "book_name":"Genesis",
+      "chapter":1,
+      "verse":1,
+      "text":"In principio creavit Deus cælum et terram."}
+  ],
+  "text":"In principio creavit Deus cælum et terram.",
+  "translation_id":"clementine",
+  "translation_name":"Clementine Latin Vulgate",
+  "translation_note":"Public Domain"
+}
