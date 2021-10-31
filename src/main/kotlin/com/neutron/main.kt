@@ -27,6 +27,8 @@ var chapt by Delegates.notNull<Int>()
 var vers by Delegates.notNull<Int>()
 var isDebug: Boolean = false
 var isChapt = false
+var isNum = false
+const val progName = "GetVerse"
 
 class Main { companion object {
         @JvmStatic
@@ -39,10 +41,11 @@ class Main { companion object {
                     metadata.add(Pair(it.name, i))
                 }
             }
+            val obj = Json.decodeFromString<Chapter>(read("bibles/${translation.toStr()}/$book/$chapt.json"))
             if(!isChapt)
-                println(Json.decodeFromString<Chapter>(read("bibles/${translation.toStr()}/$book/$chapt.json")).verses[vers-1].text)
+                println("$vers. ${obj.verses[vers-1].text}")
             else
-                Json.decodeFromString<Chapter>(read("bibles/${translation.toStr()}/$book/$chapt.json")).verses.forEach { it -> println(it.text) }
+                obj.verses.forEach { println("${it.verse}. ${it.text}") }
             /*val reader = FileReader("new.csv")
             val json = Json { prettyPrint = true }
             val records:Iterable<CSVRecord> = CSVFormat.DEFAULT.withHeader().parse(reader)
@@ -63,28 +66,35 @@ fun parse(args: Array<String>) {
     run {
         val verse: String
         val options = Options()
-        val verseOpt = Option("v", "verse", true, "-v <Book> <Chapter(number)> <Verse(number)>")
+        val verseOpt = Option("v", "verse", true, "-v \"<Book> <Chapter(number)> <Verse(number, not required)>\"")
         val transOpt = Option("t", "translation", true,
             "kjv / en (King James Version)\nkaroli / hu (Károli - Hungarian)\nvulgate / vul / lat (Vulgate - Latin)")
         val debugOpt = Option("d", "debug", false, "Set debug flag on")
+        val numOpt = Option("n", "number", false, "Print verse number")
+        val helpOpt = Option("h", "help", true, "Print out help")
         verseOpt.isRequired = true
-        debugOpt.isRequired = false
-        transOpt.isRequired = false
         options.addOption(verseOpt)
         options.addOption(transOpt)
         options.addOption(debugOpt)
+        options.addOption(numOpt)
+        options.addOption(helpOpt)
         val parser: CommandLineParser = DefaultParser()
         val formatter = HelpFormatter()
-        val cmd: CommandLine //not a good practice, it serves it purpose
+        val cmd: CommandLine
         try {
             cmd = parser.parse(options, args)
         }catch(e: ParseException){
-            e.printStackTrace()
-            formatter.printHelp("foo", options)
+            System.err.println(e.localizedMessage)
+            formatter.printHelp(progName, options)
             exitProcess(1)
         }
         verse = cmd.getOptionValue("verse").replace(",", " ").replace(":", " ")
+        if(cmd.hasOption("help")) {
+            formatter.printHelp(progName, options)
+            exitProcess(0)
+        }
         if(cmd.hasOption("debug")) isDebug = true
+        if(cmd.hasOption("number")) isNum = true
         val foo = verse.split(" ")
         if(foo.size < 2) {
             if(isDebug)
@@ -99,7 +109,7 @@ fun parse(args: Array<String>) {
             isChapt = true
         }
         if(isDebug)
-            println("debug: $book $chapt $vers")
+            println("debug: $book $chapt")
         val value = cmd.getOptionValue("translation")
         translation = when(value) {
             "en", "kjv" ->
