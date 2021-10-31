@@ -26,6 +26,7 @@ lateinit var translation: Translation
 var chapt by Delegates.notNull<Int>()
 var vers by Delegates.notNull<Int>()
 var isDebug: Boolean = false
+var isChapt = false
 
 class Main { companion object {
         @JvmStatic
@@ -38,7 +39,10 @@ class Main { companion object {
                     metadata.add(Pair(it.name, i))
                 }
             }
-            println(Json.decodeFromString<Chapter>(read("bibles/${translation.toStr()}/$book/$chapt.json")).verses[vers-1].text)
+            if(!isChapt)
+                println(Json.decodeFromString<Chapter>(read("bibles/${translation.toStr()}/$book/$chapt.json")).verses[vers-1].text)
+            else
+                Json.decodeFromString<Chapter>(read("bibles/${translation.toStr()}/$book/$chapt.json")).verses.forEach { it -> println(it.text) }
             /*val reader = FileReader("new.csv")
             val json = Json { prettyPrint = true }
             val records:Iterable<CSVRecord> = CSVFormat.DEFAULT.withHeader().parse(reader)
@@ -82,14 +86,18 @@ fun parse(args: Array<String>) {
         verse = cmd.getOptionValue("verse").replace(",", " ").replace(":", " ")
         if(cmd.hasOption("debug")) isDebug = true
         val foo = verse.split(" ")
-        if(foo.size < 3) {
+        if(foo.size < 2) {
             if(isDebug)
                 println("debug: argument count: ${foo.size}")
             error("Not enough arguments")
         }
         book = foo[0]
         chapt = foo[1].toInt()
-        vers = foo[2].toInt()
+        try {
+            vers = foo[2].toInt()
+        } catch(e: Exception) {
+            isChapt = true
+        }
         if(isDebug)
             println("debug: $book $chapt $vers")
         val value = cmd.getOptionValue("translation")
@@ -100,8 +108,8 @@ fun parse(args: Array<String>) {
                 Translation.Vulgate
             "karoli", "hu" ->
                 Translation.Karoli
-            null ->
-                Translation.KJV
+            null -> // Default
+                Translation.Karoli
             else -> {
                 System.err.println("Invalid translation setting")
                 exitProcess(1)
