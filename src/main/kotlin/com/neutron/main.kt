@@ -42,10 +42,15 @@ class Main { companion object {
                 }
             }
             val obj = Json.decodeFromString<Chapter>(read("bibles/${translation.toStr()}/$book/$chapt.json"))
-            if(!isChapt)
-                println("$vers. ${obj.verses[vers-1].text}")
-            else
-                obj.verses.forEach { println("${it.verse}. ${it.text}") }
+            if(!isChapt) {
+                if(isNum) print("$vers. ")
+                println(obj.verses[vers - 1].text)
+            } else {
+                if(isNum)
+                    obj.verses.forEach { println("${it.verse}. ${it.text}") }
+                else
+                    obj.verses.forEach { println(it.text) }
+            }
             /*val reader = FileReader("new.csv")
             val json = Json { prettyPrint = true }
             val records:Iterable<CSVRecord> = CSVFormat.DEFAULT.withHeader().parse(reader)
@@ -71,7 +76,7 @@ fun parse(args: Array<String>) {
             "kjv / en (King James Version)\nkaroli / hu (Károli - Hungarian)\nvulgate / vul / lat (Vulgate - Latin)")
         val debugOpt = Option("d", "debug", false, "Set debug flag on")
         val numOpt = Option("n", "number", false, "Print verse number")
-        val helpOpt = Option("h", "help", true, "Print out help")
+        val helpOpt = Option("h", "help", false, "Print out help")
         verseOpt.isRequired = true
         options.addOption(verseOpt)
         options.addOption(transOpt)
