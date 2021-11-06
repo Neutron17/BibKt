@@ -30,6 +30,7 @@ var isDebug: Boolean = false
 var isChapt = false
 var isNum = false
 const val progName = "GetVerse"
+const val VERSION = 1.2
 
 class Main { companion object {
         @JvmStatic
@@ -50,10 +51,7 @@ class Main { companion object {
                 System.err.println("No such chapter")
                 exitProcess(1)
             }
-            requireNotNull(obj) {
-                System.err.println("No such chapter")
-                exitProcess(1)
-            }
+            requireNotNull(obj)
             if(!isChapt) {
                 if(isNum) print("$vers. ")
                 println(obj.verses[vers - 1].text)
@@ -89,12 +87,14 @@ fun parse(args: Array<String>) {
         val debugOpt = Option("d", "debug", false, "Set debug flag on")
         val numOpt = Option("n", "number", false, "Print verse number")
         val helpOpt = Option("h", "help", false, "Print out help")
+        val versionOpt = Option("V", "version", false, "Print version")
         verseOpt.isRequired = true
         options.addOption(verseOpt)
         options.addOption(transOpt)
         options.addOption(debugOpt)
         options.addOption(numOpt)
         options.addOption(helpOpt)
+        options.addOption(versionOpt)
         val parser: CommandLineParser = DefaultParser()
         val formatter = HelpFormatter()
         val cmd: CommandLine
@@ -105,6 +105,7 @@ fun parse(args: Array<String>) {
             formatter.printHelp(progName, options)
             exitProcess(1)
         }
+        if(cmd.hasOption("version")) println("Version: $VERSION")
         verse = cmd.getOptionValue("verse").replace(",", " ").replace(":", " ")
         if(cmd.hasOption("help")) {
             formatter.printHelp(progName, options)
@@ -160,7 +161,7 @@ fun parseVerse(raw: String) {
         } catch (e: NumberFormatException) {
             if(isDebug)
                 e.printStackTrace()
-            stringBuilder += "${tmp[0]} "
+            stringBuilder += tmp[0]
             chapt = tmp[1].toInt()
             try {
                 vers = tmp[2].toInt()
