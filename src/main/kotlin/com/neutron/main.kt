@@ -5,11 +5,11 @@ import kotlinx.serialization.json.Json
 import org.apache.commons.cli.*
 import java.io.File
 import java.io.FileNotFoundException
+import java.lang.StringBuilder
 import java.util.*
 import kotlin.properties.Delegates
 import kotlin.system.exitProcess
 
-val metadata: MutableList<Pair<String, Int>> = mutableListOf()
 
 enum class Translation { KJV, Vulgate, Karoli }
 fun Translation.toStr() = when(this) {
@@ -21,6 +21,7 @@ fun Translation.toStr() = when(this) {
         "karoli"
 }
 
+val metadata: MutableList<Pair<String, Int>> = mutableListOf()
 lateinit var book: String
 lateinit var translation: Translation
 var chapt by Delegates.notNull<Int>()
@@ -41,7 +42,18 @@ class Main { companion object {
                     metadata.add(Pair(it.name, i))
                 }
             }
-            val obj = Json.decodeFromString<Chapter>(read("bibles/${translation.toStr()}/$book/$chapt.json"))
+            val obj: Chapter?
+            try {
+                obj = Json.decodeFromString(read("bibles/${translation.toStr()}/$book/$chapt.json"))
+            } catch (e: Exception) {
+                if(isDebug) e.printStackTrace()
+                System.err.println("No such chapter")
+                exitProcess(1)
+            }
+            requireNotNull(obj) {
+                System.err.println("No such chapter")
+                exitProcess(1)
+            }
             if(!isChapt) {
                 if(isNum) print("$vers. ")
                 println(obj.verses[vers - 1].text)
@@ -106,13 +118,7 @@ fun parse(args: Array<String>) {
                 println("debug: argument count: ${foo.size}")
             error("Not enough arguments")
         }
-        book = foo[0]
-        chapt = foo[1].toInt()
-        try {
-            vers = foo[2].toInt()
-        } catch(e: Exception) {
-            isChapt = true
-        }
+        parseVerse(verse)
         if(isDebug)
             println("debug: $book $chapt")
         val value = cmd.getOptionValue("translation")
@@ -134,20 +140,53 @@ fun parse(args: Array<String>) {
             println("debug: ${translation.toStr()} $value")
     }
 }
-
-fun read(name: String): String {
+fun parseVerse(raw: String) {
+    /*if(!raw.matches("(\\d*)\\s*([a-zA-Z]+)\\s*(\\d+)(?:(:|,)(\\d+))?".toRegex())) {
+        System.err.println("Invalid verse")
+        exitProcess(1)
+    }*/
+    var stringBuilder = ""
     try {
-        val file = File(name)
-        val sc = Scanner(file)
-        var buff = ""
-        while (sc.hasNextLine()) {
-            val data = sc.nextLine()
-            buff += data
+        val tmp = raw.split(' ') // "Psalms 9, 1"
+        try {
+            stringBuilder += "${tmp[0].toInt()} "
+            stringBuilder += tmp[1]
+            chapt = tmp[2].toInt()
+            try {
+                vers  = tmp[3].toInt()
+            } catch (e: IndexOutOfBoundsException) {
+                isChapt = true
+            }
+        } catch (e: NumberFormatException) {
+            if(isDebug)
+                e.printStackTrace()
+            stringBuilder += "${tmp[0]} "
+            chapt = tmp[1].toInt()
+            try {
+                vers = tmp[2].toInt()
+            } catch (e: IndexOutOfBoundsException) {
+                isChapt = true
+            }
         }
-        sc.close()
-        return buff
-    } catch (e: FileNotFoundException) {
-        e.printStackTrace()
+        //stringBuilder += tmp[1].lowercase()
+
+    } catch (e: Exception) {
+        if(isDebug)
+            e.printStackTrace()
+        System.err.println("Invalid verse/chapter")
     }
-    return ""
+    if(isDebug)
+        println("debug: chapt:$chapt vers:$vers str: $stringBuilder")
+    book = stringBuilder
+}
+fun read(name: String): String {
+    val file = File(name)
+    val sc = Scanner(file)
+    var buff = ""
+    while (sc.hasNextLine()) {
+        val data = sc.nextLine()
+        buff += data
+    }
+    sc.close()
+    return buff
 }
