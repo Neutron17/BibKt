@@ -79,6 +79,10 @@ class Main { companion object {
 
 fun parse(args: Array<String>) {
     run {
+        if("-V" in args || "--version" in args) {
+            println("Version: $VERSION")
+            exitProcess(0)
+        }
         val verse: String
         val options = Options()
         val verseOpt = Option("v", "verse", true, "-v \"<Book> <Chapter(number)> <Verse(number, not required)>\"")
@@ -87,14 +91,12 @@ fun parse(args: Array<String>) {
         val debugOpt = Option("d", "debug", false, "Set debug flag on")
         val numOpt = Option("n", "number", false, "Print verse number")
         val helpOpt = Option("h", "help", false, "Print out help")
-        val versionOpt = Option("V", "version", false, "Print version")
         verseOpt.isRequired = true
         options.addOption(verseOpt)
         options.addOption(transOpt)
         options.addOption(debugOpt)
         options.addOption(numOpt)
         options.addOption(helpOpt)
-        options.addOption(versionOpt)
         val parser: CommandLineParser = DefaultParser()
         val formatter = HelpFormatter()
         val cmd: CommandLine
@@ -105,7 +107,6 @@ fun parse(args: Array<String>) {
             formatter.printHelp(progName, options)
             exitProcess(1)
         }
-        if(cmd.hasOption("version")) println("Version: $VERSION")
         verse = cmd.getOptionValue("verse").replace(",", " ").replace(":", " ")
         if(cmd.hasOption("help")) {
             formatter.printHelp(progName, options)
