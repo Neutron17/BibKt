@@ -1,5 +1,7 @@
 # GetVerse
 
+Get bible chapter/verse right from the comfort of the command line
+
 ### Example:
 ```
 java -jar getverse.jar -v "Genesis 1,1" -t kjv
