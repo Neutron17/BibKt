@@ -4,10 +4,7 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import org.apache.commons.cli.*
 import java.io.File
-import java.io.FileNotFoundException
-import java.lang.StringBuilder
 import java.util.*
-import kotlin.properties.Delegates
 import kotlin.system.exitProcess
 
 
@@ -21,42 +18,55 @@ fun Translation.toStr() = when(this) {
         "karoli"
 }
 
-val metadata: MutableList<Pair<String, Int>> = mutableListOf()
-lateinit var book: String
-lateinit var translation: Translation
-var chapt by Delegates.notNull<Int>()
-var vers by Delegates.notNull<Int>()
+class Args {
+    var book: String = "John"
+    var translation: Translation = Translation.KJV
+    var chapt: Int = 3
+    var vers: Int  = 16
+    var isChapt = false
+    var isNum   = false
+
+    constructor(book: String, translation: Translation, chapt: Int, vers: Int, isChapt: Boolean, isNum: Boolean) {
+        this.book = book
+        this.translation = translation
+        this.chapt = chapt
+        this.vers = vers
+        this.isChapt = isChapt
+        this.isNum = isNum
+    }
+    constructor()
+}
+
 var isDebug: Boolean = false
-var isChapt = false
-var isNum = false
+val metadata: MutableList<Pair<String, Int>> = mutableListOf()
 const val progName = "GetVerse"
 const val VERSION = 1.2
 
 class Main { companion object {
         @JvmStatic
         fun main(args: Array<String>) {
-            parse(args)
+            val arg = parse(args)
             run {
                 var i = 0
-                Json.decodeFromString<MutableList<BookName>>(read("books.json")).forEach { it ->
+                Json.decodeFromString<MutableList<BookName>>(read("books.json")).forEach {
                     i++
                     metadata.add(Pair(it.name, i))
                 }
             }
             val obj: Chapter?
             try {
-                obj = Json.decodeFromString(read("bibles/${translation.toStr()}/$book/$chapt.json"))
+                obj = Json.decodeFromString(read("bibles/${arg.translation.toStr()}/${arg.book}/${arg.chapt}.json"))
             } catch (e: Exception) {
                 if(isDebug) e.printStackTrace()
                 System.err.println("No such chapter")
                 exitProcess(1)
             }
             requireNotNull(obj)
-            if(!isChapt) {
-                if(isNum) print("$vers. ")
-                println(obj.verses[vers - 1].text)
+            if(!arg.isChapt) {
+                if(arg.isNum) print("${arg.vers}. ")
+                println(obj.verses[arg.vers - 1].text)
             } else {
-                if(isNum)
+                if(arg.isNum)
                     obj.verses.forEach { println("${it.verse}. ${it.text}") }
                 else
                     obj.verses.forEach { println(it.text) }
@@ -77,110 +87,114 @@ class Main { companion object {
         }
 }}
 
-fun parse(args: Array<String>) {
-    run {
-        if("-V" in args || "--version" in args) {
-            println("Version: $VERSION")
-            exitProcess(0)
-        }
-        val verse: String
-        val options = Options()
-        val verseOpt = Option("v", "verse", true, "-v \"<Book> <Chapter(number)> <Verse(number, not required)>\"")
-        val transOpt = Option("t", "translation", true,
-            "kjv / en (King James Version)\nkaroli / hu (Károli - Hungarian)\nvulgate / vul / lat (Vulgate - Latin)")
-        val debugOpt = Option("d", "debug", false, "Set debug flag on")
-        val numOpt = Option("n", "number", false, "Print verse number")
-        val helpOpt = Option("h", "help", false, "Print out help")
-        verseOpt.isRequired = true
-        options.addOption(verseOpt)
-        options.addOption(transOpt)
-        options.addOption(debugOpt)
-        options.addOption(numOpt)
-        options.addOption(helpOpt)
-        val parser: CommandLineParser = DefaultParser()
-        val formatter = HelpFormatter()
-        val cmd: CommandLine
-        try {
-            cmd = parser.parse(options, args)
-        }catch(e: ParseException){
-            System.err.println(e.localizedMessage)
-            formatter.printHelp(progName, options)
+fun parse(args: Array<String>): Args {
+    if ("-V" in args || "--version" in args) {
+        println("Version: $VERSION")
+        exitProcess(0)
+    }
+    val verse: String
+    val options = Options()
+    val verseOpt = Option("v", "verse", true, "-v \"<Book> <Chapter(number)> <Verse(number, not required)>\"")
+    val transOpt = Option(
+        "t", "translation", true,
+        "kjv / en (King James Version)\nkaroli / hu (Károli - Hungarian)\nvulgate / vul / lat (Vulgate - Latin)"
+    )
+    val debugOpt = Option("d", "debug", false, "Set debug flag on")
+    val numOpt = Option("n", "number", false, "Print verse number")
+    val helpOpt = Option("h", "help", false, "Print out help")
+    verseOpt.isRequired = true
+    options.addOption(verseOpt)
+    options.addOption(transOpt)
+    options.addOption(debugOpt)
+    options.addOption(numOpt)
+    options.addOption(helpOpt)
+    val parser: CommandLineParser = DefaultParser()
+    val formatter = HelpFormatter()
+    val cmd: CommandLine
+    try {
+        cmd = parser.parse(options, args)
+    } catch (e: ParseException) {
+        System.err.println(e.localizedMessage)
+        formatter.printHelp(progName, options)
+        exitProcess(1)
+    }
+    verse = cmd.getOptionValue("verse").replace(",", " ").replace(":", " ")
+    if (cmd.hasOption("help")) {
+        formatter.printHelp(progName, options)
+        exitProcess(0)
+    }
+    val arg = Args()
+    if (cmd.hasOption("debug")) isDebug = true
+    if (cmd.hasOption("number")) arg.isNum = true
+    val foo = verse.split(" ")
+    if (foo.size < 2) {
+        if (isDebug)
+            println("debug: argument count: ${foo.size}")
+        error("Not enough arguments")
+    }
+    parseVerse(verse)
+    if (isDebug)
+        println("debug: ${arg.book} ${arg.chapt}")
+    val value = cmd.getOptionValue("translation")
+    arg.translation = when (value) {
+        "en", "kjv" ->
+            Translation.KJV
+        "lat", "val", "vulgate" ->
+            Translation.Vulgate
+        "karoli", "hu" ->
+            Translation.Karoli
+        null -> // Default
+            Translation.Karoli
+        else -> {
+            System.err.println("Invalid translation setting")
             exitProcess(1)
         }
-        verse = cmd.getOptionValue("verse").replace(",", " ").replace(":", " ")
-        if(cmd.hasOption("help")) {
-            formatter.printHelp(progName, options)
-            exitProcess(0)
-        }
-        if(cmd.hasOption("debug")) isDebug = true
-        if(cmd.hasOption("number")) isNum = true
-        val foo = verse.split(" ")
-        if(foo.size < 2) {
-            if(isDebug)
-                println("debug: argument count: ${foo.size}")
-            error("Not enough arguments")
-        }
-        parseVerse(verse)
-        if(isDebug)
-            println("debug: $book $chapt")
-        val value = cmd.getOptionValue("translation")
-        translation = when(value) {
-            "en", "kjv" ->
-                Translation.KJV
-            "lat", "val", "vulgate" ->
-                Translation.Vulgate
-            "karoli", "hu" ->
-                Translation.Karoli
-            null -> // Default
-                Translation.Karoli
-            else -> {
-                System.err.println("Invalid translation setting")
-                exitProcess(1)
-            }
-        }
-        if(isDebug)
-            println("debug: ${translation.toStr()} $value")
     }
+    if (isDebug)
+        println("debug: ${arg.translation.toStr()} $value")
+    return arg
 }
-fun parseVerse(raw: String) {
+
+fun parseVerse(raw: String): Args {
     /*if(!raw.matches("(\\d*)\\s*([a-zA-Z]+)\\s*(\\d+)(?:(:|,)(\\d+))?".toRegex())) {
         System.err.println("Invalid verse")
         exitProcess(1)
     }*/
     var stringBuilder = ""
+    val args = Args()
     try {
         val tmp = raw.split(' ') // "Psalms 9, 1"
         try {
             stringBuilder += "${tmp[0].toInt()} "
             stringBuilder += tmp[1]
-            chapt = tmp[2].toInt()
+            args.chapt = tmp[2].toInt()
             try {
-                vers  = tmp[3].toInt()
+                args.vers  = tmp[3].toInt()
             } catch (e: IndexOutOfBoundsException) {
-                isChapt = true
+                args.isChapt = true
             }
         } catch (e: NumberFormatException) {
             if(isDebug)
                 e.printStackTrace()
             stringBuilder += tmp[0]
-            chapt = tmp[1].toInt()
+            args.chapt = tmp[1].toInt()
             try {
-                vers = tmp[2].toInt()
+                args.vers = tmp[2].toInt()
             } catch (e: IndexOutOfBoundsException) {
-                isChapt = true
+                args.isChapt = true
             }
         }
-        //stringBuilder += tmp[1].lowercase()
-
     } catch (e: Exception) {
         if(isDebug)
             e.printStackTrace()
         System.err.println("Invalid verse/chapter")
     }
     if(isDebug)
-        println("debug: chapt:$chapt vers:$vers str: $stringBuilder")
-    book = stringBuilder
+        println("debug: chapt:${args.chapt} vers:${args.vers} str: $stringBuilder")
+    args.book = stringBuilder
+    return args
 }
+
 fun read(name: String): String {
     val file = File(name)
     val sc = Scanner(file)
