@@ -1,0 +1,266 @@
+[
+    {
+        "name": "Genesis",
+        "id": 1
+    },
+    {
+        "name": "Exodus",
+        "id": 2
+    },
+    {
+        "name": "Leviticus",
+        "id": 3
+    },
+    {
+        "name": "Numbers",
+        "id": 4
+    },
+    {
+        "name": "Deuteronomy",
+        "id": 5
+    },
+    {
+        "name": "Joshua",
+        "id": 6
+    },
+    {
+        "name": "Judges",
+        "id": 7
+    },
+    {
+        "name": "Ruth",
+        "id": 8
+    },
+    {
+        "name": "1 Samuel",
+        "id": 9
+    },
+    {
+        "name": "2 Samuel",
+        "id": 10
+    },
+    {
+        "name": "1 Kings",
+        "id": 11
+    },
+    {
+        "name": "2 Kings",
+        "id": 12
+    },
+    {
+        "name": "1 Chronicles",
+        "id": 13
+    },
+    {
+        "name": "2 Chronicles",
+        "id": 14
+    },
+    {
+        "name": "Ezra",
+        "id": 15
+    },
+    {
+        "name": "Nehemiah",
+        "id": 16
+    },
+    {
+        "name": "Esther",
+        "id": 17
+    },
+    {
+        "name": "Job",
+        "id": 18
+    },
+    {
+        "name": "Psalms",
+        "id": 19
+    },
+    {
+        "name": "Proverbs",
+        "id": 20
+    },
+    {
+        "name": "Ecclesiastes",
+        "id": 21
+    },
+    {
+        "name": "Song of Songs",
+        "id": 22
+    },
+    {
+        "name": "Isaiah",
+        "id": 23
+    },
+    {
+        "name": "Jeremiah",
+        "id": 24
+    },
+    {
+        "name": "Lamentations",
+        "id": 25
+    },
+    {
+        "name": "Ezekiel",
+        "id": 26
+    },
+    {
+        "name": "Daniel",
+        "id": 27
+    },
+    {
+        "name": "Hosea",
+        "id": 28
+    },
+    {
+        "name": "Joel",
+        "id": 29
+    },
+    {
+        "name": "Amos",
+        "id": 30
+    },
+    {
+        "name": "Obadiah",
+        "id": 31
+    },
+    {
+        "name": "Jonah",
+        "id": 32
+    },
+    {
+        "name": "Micah",
+        "id": 33
+    },
+    {
+        "name": "Nahum",
+        "id": 34
+    },
+    {
+        "name": "Habakkuk",
+        "id": 35
+    },
+    {
+        "name": "Zephaniah",
+        "id": 36
+    },
+    {
+        "name": "Haggai",
+        "id": 37
+    },
+    {
+        "name": "Zechariah",
+        "id": 38
+    },
+    {
+        "name": "Malachi",
+        "id": 39
+    },
+    {
+        "name": "Matthew",
+        "id": 40
+    },
+    {
+        "name": "Mark",
+        "id": 41
+    },
+    {
+        "name": "Luke",
+        "id": 42
+    },
+    {
+        "name": "John",
+        "id": 43
+    },
+    {
+        "name": "Acts",
+        "id": 44
+    },
+    {
+        "name": "Romans",
+        "id": 45
+    },
+    {
+        "name": "1 Corinthians",
+        "id": 46
+    },
+    {
+        "name": "2 Corinthians",
+        "id": 47
+    },
+    {
+        "name": "Galatians",
+        "id": 48
+    },
+    {
+        "name": "Ephesians",
+        "id": 49
+    },
+    {
+        "name": "Philippians",
+        "id": 50
+    },
+    {
+        "name": "Colossians",
+        "id": 51
+    },
+    {
+        "name": "1 Thessalonians",
+        "id": 52
+    },
+    {
+        "name": "2 Thessalonians",
+        "id": 53
+    },
+    {
+        "name": "1 Timothy",
+        "id": 54
+    },
+    {
+        "name": "2 Timothy",
+        "id": 55
+    },
+    {
+        "name": "Titus",
+        "id": 56
+    },
+    {
+        "name": "Philemon",
+        "id": 57
+    },
+    {
+        "name": "Hebrews",
+        "id": 58
+    },
+    {
+        "name": "James",
+        "id": 59
+    },
+    {
+        "name": "1 Peter",
+        "id": 60
+    },
+    {
+        "name": "2 Peter",
+        "id": 61
+    },
+    {
+        "name": "1 John",
+        "id": 62
+    },
+    {
+        "name": "2 John",
+        "id": 63
+    },
+    {
+        "name": "3 John",
+        "id": 64
+    },
+    {
+        "name": "Jude",
+        "id": 65
+    },
+    {
+        "name": "Revelation",
+        "id": 66
+    }
+]
