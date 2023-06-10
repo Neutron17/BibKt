@@ -1,5 +1,6 @@
-import com.neutron.BookName
+import com.neutron.Book
 import com.neutron.Chapter
+import com.neutron.I18n
 import kotlinx.coroutines.*
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
@@ -51,49 +52,12 @@ data class Args(
 }
 
 var isDebug: Boolean = false
-val metadata: MutableList<Pair<String, Int>> = mutableListOf()
 const val progName = "GetVerse"
-const val VERSION = 1.3
+const val VERSION = 1.4
 
 // metadata job
 lateinit var md_job: Job
-fun loadMetadata() {
-	var i = 0
-	Json.decodeFromString<MutableList<BookName>>(read("books.json")).forEach {
-		i++
-		metadata.add(Pair(it.name, i))
-	}
-}
 
-object Book {
-	fun chapters(bookId: Int): Int {
-		val reader = FileReader("new.csv")
-		val records:Iterable<CSVRecord> = CSVFormat.DEFAULT.withHeader().parse(reader)
-		var isIn = false;
-		var i = 0
-		for(record in records) {
-			if(record["BookID"].toInt() == bookId)
-				isIn = true
-			if(isIn) {
-				if(record["BookID"].toInt() != bookId)
-					break
-				i++
-			}
-		}
-		return i
-	}
-	fun chapters(book: String) = chapters(IDFromName(book)!!)
-	fun IDFromName(name: String): Int? {
-		return metadata.find {
-			it.first == name
-		}?.second
-	}
-	fun nameFromID(id: Int): String? {
-		return metadata.find {
-			it.second == id
-		}?.first
-	}
-}
 fun chapterByBook() {
 	val reader = FileReader("new.csv")
 	val json = Json { prettyPrint = true }
@@ -113,28 +77,42 @@ fun decodeChapter(translation: String, book: String, chapter: Int): Chapter? {
 	} catch (e: Exception) {
 		if (isDebug) e.printStackTrace()
 		if (!File("bibles/$translation").exists())
-			err("No such translation")
+			err(I18n.getMessage("NO_TRANS"))
 		if (!File("bibles/$translation/$book").exists())
-			err("No such book")
+			err(I18n.getMessage("NO_BOOK"))
 		if (!File("bibles/$translation/$book/$chapter.json").exists())
-			err("No such chapter")
+			err(I18n.getMessage("NO_CHAP"))
 		else
-			err("Unexpected reading/parsing error")
+			err(I18n.getMessage("READ_ERR"))
 		// bc compiler complaining
 		null;
 	}
 }
+
+fun printChapter(arg: Args, ch: Chapter) {
+	if (!arg.isChapt) {
+		if (arg.isNum) print("${arg.vers}. ")
+		println(ch.verses[arg.vers - 1].text)
+	} else {
+		if (arg.isNum)
+			ch.verses.forEach { println("${it.verse}. ${it.text}") }
+		else
+			ch.verses.forEach { println(it.text) }
+	}
+}
+
 suspend fun main(args: Array<String>) {
+	Locale.setDefault(Locale.CHINA)
 	coroutineScope {
 		md_job = launch {
-			loadMetadata()
+			Book.loadMetadata()
 		}
 	}
 	val arg = parse(args)
 	with(arg) {
 		if (isInteractive) {
 			if (isBook) {
-				println("${arg.book}, enter chapter(1-${Book.chapters(arg.book)})")
+				println("${arg.book}, ${I18n.getMessage("ENTER_CHAP")}(1-${Book.chapters(arg.book)})")
 				print("> ")
 				try {
 					val inp = readln()
@@ -146,18 +124,23 @@ suspend fun main(args: Array<String>) {
 							}.joinToString(" ")
 					arg.applyParsed(parseVerse(str))
 				} catch (e: Exception) {
-					System.err.println("Invalid input");
+					System.err.println(I18n.getMessage("INV_INP"));
 				}
-				val ch = decodeChapter(arg.translation.toStr(), arg.book, arg.chapt)!!
-				if (!arg.isChapt) {
-					if (arg.isNum) print("${arg.vers}. ")
-					println(ch.verses[arg.vers - 1].text)
-				} else {
-					if (arg.isNum)
-						ch.verses.forEach { println("${it.verse}. ${it.text}") }
+				val ch = decodeChapter(arg.translation.toStr(), arg.book, arg.chapt)!! // TODO handle error
+				printChapter(arg, ch)
+			} else {
+				val row = 6
+				println("---${I18n.getMessage("BOOKS")}---")
+				Book.metadata.forEachIndexed { id, it ->
+					if((id % row) == (row - 1))
+						println("${it.first}, ")
 					else
-						ch.verses.forEach { println(it.text) }
+						print("${it.first}, ")
 				}
+				print("Enter a book: ")
+				val inp = readln().toUIntOrNull() // TODO: handle error
+				TODO("Not yet implemented")
+
 			}
 			exitProcess(0);
 		}
@@ -167,16 +150,8 @@ suspend fun main(args: Array<String>) {
 	val book = arg.book
 	val chapter = arg.chapt
 
-	val ch = decodeChapter(translation, book, chapter)!!
-	if (!arg.isChapt) {
-		if (arg.isNum) print("${arg.vers}. ")
-		println(ch.verses[arg.vers - 1].text)
-	} else {
-		if (arg.isNum)
-			ch.verses.forEach { println("${it.verse}. ${it.text}") }
-		else
-			ch.verses.forEach { println(it.text) }
-	}
+	val ch = decodeChapter(translation, book, chapter)!! // TODO: handle error
+	printChapter(arg, ch)
 	/*val reader = FileReader("new.csv")
 	val json = Json { prettyPrint = true }
 	val records:Iterable<CSVRecord> = CSVFormat.DEFAULT.withHeader().parse(reader)
@@ -199,16 +174,16 @@ suspend fun parse(args: Array<String>): Args {
 	}
 	val options = Options()
 	val opts = arrayOf(
-		Option("v", "verse", true, "-v \"<Book> <Chapter(number)> <Verse(number, not required)>\""),
+		Option("v", "verse", true, "-v \"${I18n.getMessage("VERSE")}\""),
 		Option(
 			"t", "translation", true,
-			"kjv / en (King James Version)\nkaroli / hu (Károli - Hungarian)\nvulgate / vul / lat (Vulgate - Latin)",
+			I18n.getMessage("TRANS")
 		),
-		Option("d", "debug", false, "Set debug flag on"),
-		Option("n", "number", false, "Print verse number"),
-		Option("h", "help", false, "Print out help"),
-		Option("i", "interactive", false, "Run in interactive mode"),
-		Option("l", "list", false, "List books")
+		Option("d", "debug", false, I18n.getMessage("DEBUG")),
+		Option("n", "number", false, I18n.getMessage("NUMBER")),
+		Option("h", "help", false, I18n.getMessage("HELP")),
+		Option("i", "interactive", false, I18n.getMessage("INTER")),
+		Option("l", "list", false, I18n.getMessage("LIST"))
 	);
 	with(options) {
 		opts.forEach(::addOption)
@@ -232,7 +207,7 @@ suspend fun parse(args: Array<String>): Args {
 	if (cmd.hasOption("debug")) isDebug = true
 	if (cmd.hasOption("list")) {
 		md_job.join()
-		metadata.forEach { it ->
+		Book.metadata.forEach { it ->
 			println("${it.second}: ${it.first}");
 		}
 		exitProcess(0)
@@ -254,7 +229,7 @@ suspend fun parse(args: Array<String>): Args {
 			Translation.Karoli
 
 		else -> {
-			System.err.println("Invalid translation setting")
+			System.err.println(I18n.getMessage("INV_TRAN"))
 			exitProcess(1)
 		}
 	}
@@ -280,7 +255,7 @@ suspend fun parse(args: Array<String>): Args {
 		return arg
 	} else {
 		if (!cmd.hasOption("verse"))
-			err("-v / --verse option must be present")
+			err("-v / --verse ${I18n.getMessage("V_MUST_PRES")}")
 	}
 
 	verse = cmd.getOptionValue("verse").replace(",", " ").replace(":", " ")
@@ -289,7 +264,7 @@ suspend fun parse(args: Array<String>): Args {
 	if (verseSlices.size < 2) {
 		if (isDebug)
 			println("debug: argument count: ${verseSlices.size}")
-		err("Not enough arguments (Provide at least a book and a chapter)")
+		err(I18n.getMessage("NOT_ENOUGH_ARG"))
 	}
 	arg.applyParsed(parseVerse(verse))
 	if (isDebug)
@@ -343,10 +318,10 @@ fun parseVerse(raw: String): Args {
 	} catch (e: Exception) {
 		if (isDebug)
 			e.printStackTrace()
-		System.err.println("Invalid verse/chapter")
+		System.err.println(I18n.getMessage("INV_VERSE_OR_CHAPT"))
 	}
 	if (isDebug)
-		println("debug: ${args}, $stringBuilder")
+		println("debug: $args, $stringBuilder")
 	return args
 }
 
