@@ -12,11 +12,6 @@ object I18n {
 			Locale.setDefault(l)
 		}
 
-	fun isSupported(l: Locale): Boolean {
-		val availableLocales = Locale.getAvailableLocales()
-		return listOf(*availableLocales).contains(l)
-	}
-
 	fun translation(key: String): String {
 		if (bundle == null) {
 			try {

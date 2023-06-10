@@ -7,6 +7,7 @@ import org.apache.commons.csv.CSVRecord
 import java.io.FileReader
 
 object Book {
+	// first: book name, second: book id
 	var metadata: MutableList<Pair<String, Int>> = mutableListOf()
 	fun chapters(bookId: Int): Int {
 		val reader = FileReader("new.csv")
@@ -44,4 +45,6 @@ object Book {
 			Book.metadata.add(Pair(it.name, i))
 		}
 	}
+
+	fun doesExist(name: String): Boolean = metadata.find { it.first == name } != null
 }
