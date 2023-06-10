@@ -17,7 +17,7 @@ object I18n {
 		return listOf(*availableLocales).contains(l)
 	}
 
-	fun getMessage(key: String): String {
+	fun translation(key: String): String {
 		if (bundle == null) {
 			try {
 				bundle = ResourceBundle.getBundle(MESSAGES_KEY)
@@ -30,7 +30,7 @@ object I18n {
 		return bundle!!.getString(key)
 	}
 
-	fun getMessage(key: String, vararg arguments: Any): String {
-		return MessageFormat.format(getMessage(key), *arguments)
+	fun translation(key: String, vararg arguments: Any): String {
+		return MessageFormat.format(translation(key), *arguments)
 	}
 }

@@ -1,6 +1,7 @@
 import com.neutron.Book
 import com.neutron.Chapter
 import com.neutron.I18n
+import com.neutron.I18n.translation
 import kotlinx.coroutines.*
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
@@ -9,7 +10,6 @@ import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.CSVRecord
 import java.io.File
 import java.io.FileReader
-import java.lang.NumberFormatException
 import java.util.*
 import kotlin.system.exitProcess
 
@@ -77,13 +77,13 @@ fun decodeChapter(translation: String, book: String, chapter: Int): Chapter? {
 	} catch (e: Exception) {
 		if (isDebug) e.printStackTrace()
 		if (!File("bibles/$translation").exists())
-			err(I18n.getMessage("NO_TRANS"))
+			err(translation("NO_TRANS"))
 		if (!File("bibles/$translation/$book").exists())
-			err(I18n.getMessage("NO_BOOK"))
+			err(translation("NO_BOOK"))
 		if (!File("bibles/$translation/$book/$chapter.json").exists())
-			err(I18n.getMessage("NO_CHAP"))
+			err(translation("NO_CHAP"))
 		else
-			err(I18n.getMessage("READ_ERR"))
+			err(translation("READ_ERR"))
 		// bc compiler complaining
 		null;
 	}
@@ -95,9 +95,9 @@ fun printChapter(arg: Args, ch: Chapter) {
 		println(ch.verses[arg.vers - 1].text)
 	} else {
 		if (arg.isNum)
-			ch.verses.forEach { println("${it.verse}. ${it.text}") }
+			ch.verses.forEach { println("${it.verse}. ${it.text.dropLastWhile { itt -> itt == '\n' }}") }
 		else
-			ch.verses.forEach { println(it.text) }
+			ch.verses.forEach { println(it.text.dropLastWhile { itt -> itt == '\n' }) }
 	}
 }
 
@@ -112,7 +112,7 @@ suspend fun main(args: Array<String>) {
 	with(arg) {
 		if (isInteractive) {
 			if (isBook) {
-				println("${arg.book}, ${I18n.getMessage("ENTER_CHAP")}(1-${Book.chapters(arg.book)})")
+				println("${arg.book}, ${translation("ENTER_CHAP")}(1-${Book.chapters(arg.book)})")
 				print("> ")
 				try {
 					val inp = readln()
@@ -124,13 +124,13 @@ suspend fun main(args: Array<String>) {
 							}.joinToString(" ")
 					arg.applyParsed(parseVerse(str))
 				} catch (e: Exception) {
-					System.err.println(I18n.getMessage("INV_INP"));
+					System.err.println(translation("INV_INP"));
 				}
 				val ch = decodeChapter(arg.translation.toStr(), arg.book, arg.chapt)!! // TODO handle error
 				printChapter(arg, ch)
 			} else {
 				val row = 6
-				println("---${I18n.getMessage("BOOKS")}---")
+				println("---${translation("BOOKS")}---")
 				Book.metadata.forEachIndexed { id, it ->
 					if((id % row) == (row - 1))
 						println("${it.first}, ")
@@ -174,16 +174,13 @@ suspend fun parse(args: Array<String>): Args {
 	}
 	val options = Options()
 	val opts = arrayOf(
-		Option("v", "verse", true, "-v \"${I18n.getMessage("VERSE")}\""),
-		Option(
-			"t", "translation", true,
-			I18n.getMessage("TRANS")
-		),
-		Option("d", "debug", false, I18n.getMessage("DEBUG")),
-		Option("n", "number", false, I18n.getMessage("NUMBER")),
-		Option("h", "help", false, I18n.getMessage("HELP")),
-		Option("i", "interactive", false, I18n.getMessage("INTER")),
-		Option("l", "list", false, I18n.getMessage("LIST"))
+		Option("v", "verse", true, "-v \"${translation("VERSE")}\""),
+		Option("t", "translation", true, translation("TRANS")),
+		Option("d", "debug", false, translation("DEBUG")),
+		Option("n", "number", false, translation("NUMBER")),
+		Option("h", "help", false, translation("HELP")),
+		Option("i", "interactive", false, translation("INTER")),
+		Option("l", "list", false, translation("LIST"))
 	);
 	with(options) {
 		opts.forEach(::addOption)
@@ -225,11 +222,14 @@ suspend fun parse(args: Array<String>): Args {
 		"karoli", "hu" ->
 			Translation.Karoli
 
-		null -> // Default
-			Translation.Karoli
-
+		null -> { // Default
+			if(I18n.locale.country.lowercase().contains("hun"))
+				Translation.Karoli
+			else
+				Translation.KJV
+		}
 		else -> {
-			System.err.println(I18n.getMessage("INV_TRAN"))
+			System.err.println(translation("INV_TRAN"))
 			exitProcess(1)
 		}
 	}
@@ -242,86 +242,60 @@ suspend fun parse(args: Array<String>): Args {
 		if (cmd.hasOption("verse")) {
 			verse = cmd.getOptionValue("verse").replace(",", " ").replace(":", " ")
 			val parsed = parseVerse(verse)
-			with(parsed) {
-				arg.book = book
-				arg.isChapt = isChapt
-				arg.isBook = isBook
-				if (!isBook)
-					arg.chapt = chapt
-				if (!isChapt)
-					arg.vers = vers
-			}
+			arg.applyParsed(parsed)
 		}
 		return arg
-	} else {
-		if (!cmd.hasOption("verse"))
-			err("-v / --verse ${I18n.getMessage("V_MUST_PRES")}")
 	}
 
-	verse = cmd.getOptionValue("verse").replace(",", " ").replace(":", " ")
+	if (!cmd.hasOption("verse"))
+		err("-v / --verse ${translation("V_MUST_PRES")}")
+
+	verse = cmd.getOptionValue("verse").replace(", ", " ").replace(",", " ").replace(":", " ")
 
 	val verseSlices = verse.split(" ")
-	if (verseSlices.size < 2) {
-		if (isDebug)
-			println("debug: argument count: ${verseSlices.size}")
-		err(I18n.getMessage("NOT_ENOUGH_ARG"))
-	}
+	if (verseSlices.size < 2)
+		err(translation("NOT_ENOUGH_ARG") + " (${verseSlices.size}")
 	arg.applyParsed(parseVerse(verse))
 	if (isDebug)
-		println("debug: ${arg.book} ${arg.chapt}")
+		println("debug: $arg")
 	return arg
 }
 
 fun parseVerse(raw: String): Args {
-	/*if(!raw.matches("(\\d*)\\s*([a-zA-Z]+)\\s*(\\d+)(?:(:|,)(\\d+))?".toRegex())) {
-	System.err.println("Invalid verse")
-	exitProcess(1)
-}*/
-	var stringBuilder = ""
 	val args = Args()
 	try {
-		val parts = raw.split(' ').onEach(String::trim) // "Psalms 9 1"
+		val parts = raw.split(' ').onEach(String::trim) // "Psalms 9 1 " -> ["Psalms", "9", "1"]
 		if(isDebug)
 			println("debug: $parts")
+		args.book = parts[0]
+		val offs: Int = if(parts[0].toIntOrNull() != null) { // staring with number, 2 segments, like 1 Corinthians
+			args.book += " ${parts[1]}"
+			1
+		} else {
+			if(("${parts[0]} ${parts[1]} ${parts[2]}").lowercase() == "song of songs") { // 3 segments
+				args.book += " ${parts[1]} ${parts[2]}"
+				2
+			} else { // 1 segment
+				0
+			}
+		}
 		try {
-			stringBuilder += "${parts[0]} "
-			args.book = parts[0]
-			stringBuilder += parts[1]
-			args.chapt = parts[2].toInt()
+			args.chapt = parts[offs+1].toInt()
 			try {
-				args.vers = parts[3].toInt()
+				args.vers = parts[offs+2].toInt()
 			} catch (e: IndexOutOfBoundsException) {
 				args.isChapt = true
 			}
-		} catch (e: Exception) {
-			when (e) {
-				is NumberFormatException, is IndexOutOfBoundsException -> {}
-				else -> throw e
-			}
-			if (isDebug)
-				e.printStackTrace()
-			stringBuilder = "${parts[0]} "
-			args.book = parts[0]
-			try {
-				stringBuilder += parts[1]
-				args.chapt = parts[1].toInt()
-				try {
-					stringBuilder += parts[2]
-					args.vers = parts[2].toInt()
-				} catch (e: IndexOutOfBoundsException) {
-					args.isChapt = true
-				}
-			} catch (e: IndexOutOfBoundsException) {
-				args.isBook = true
-			}
+		} catch (e: IndexOutOfBoundsException) {
+			args.isBook = true
 		}
 	} catch (e: Exception) {
 		if (isDebug)
 			e.printStackTrace()
-		System.err.println(I18n.getMessage("INV_VERSE_OR_CHAPT"))
+		System.err.println(translation("INV_VERSE_OR_CHAPT"))
 	}
 	if (isDebug)
-		println("debug: $args, $stringBuilder")
+		println("debug: $args")
 	return args
 }
 
