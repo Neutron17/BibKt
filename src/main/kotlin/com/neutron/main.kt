@@ -1,6 +1,5 @@
-import com.neutron.Book
-import com.neutron.Chapter
-import com.neutron.I18n
+package com.neutron
+
 import com.neutron.I18n.translation
 import kotlinx.coroutines.*
 import kotlinx.serialization.decodeFromString
@@ -102,7 +101,6 @@ fun printChapter(arg: Args, ch: Chapter) {
 }
 
 suspend fun main(args: Array<String>) {
-	Locale.setDefault(Locale.CHINA)
 	coroutineScope {
 		md_job = launch {
 			Book.loadMetadata()
@@ -154,7 +152,7 @@ suspend fun main(args: Array<String>) {
 	printChapter(arg, ch)
 	/*val reader = FileReader("new.csv")
 	val json = Json { prettyPrint = true }
-	val records:Iterable<CSVRecord> = CSVFormat.DEFAULT.withHeader().parse(reader)
+	val records:Iterable<CSVRecord> = CSVFormat.DEFAULT.withHeader().com.neutron.parse(reader)
 	for(record in records) {
 		println("${record["BookID"]} ${record["Chapter"]}")
 		//if(record["BookID"].toInt() == 3) break
@@ -180,7 +178,8 @@ suspend fun parse(args: Array<String>): Args {
 		Option("n", "number", false, translation("NUMBER")),
 		Option("h", "help", false, translation("HELP")),
 		Option("i", "interactive", false, translation("INTER")),
-		Option("l", "list", false, translation("LIST"))
+		Option("a", "list", false, translation("LIST")),
+		Option("l", "lang", true, translation("LANG"))
 	);
 	with(options) {
 		opts.forEach(::addOption)
@@ -209,6 +208,16 @@ suspend fun parse(args: Array<String>): Args {
 		}
 		exitProcess(0)
 	}
+	if(cmd.hasOption("lang")) {
+		try {
+			I18n.locale = Locale(cmd.getOptionValue("lang"))
+		} catch (e: Exception) {
+			System.err.println(e.localizedMessage)
+			System.err.println(translation("INV_LANG"))
+			exitProcess(-1)
+		}
+		exitProcess(0)
+	}
 	if (cmd.hasOption("number")) arg.isNum = true
 	// TRANSLATION
 	val value = cmd.getOptionValue("translation")
@@ -216,10 +225,10 @@ suspend fun parse(args: Array<String>): Args {
 		"en", "kjv" ->
 			Translation.KJV
 
-		"lat", "val", "vulgate" ->
+		"lat", "vul", "vulgate" ->
 			Translation.Vulgate
 
-		"karoli", "hu" ->
+		"karoli", "hu","hun" ->
 			Translation.Karoli
 
 		null -> { // Default
@@ -261,6 +270,9 @@ suspend fun parse(args: Array<String>): Args {
 	return arg
 }
 
+/** Parse a string into an com.neutron.Args object
+ * Like: "Psalms 51:2" -> com.neutron.Args
+ */
 fun parseVerse(raw: String): Args {
 	val args = Args()
 	try {
@@ -272,10 +284,14 @@ fun parseVerse(raw: String): Args {
 			args.book += " ${parts[1]}"
 			1
 		} else {
-			if(("${parts[0]} ${parts[1]} ${parts[2]}").lowercase() == "song of songs") { // 3 segments
-				args.book += " ${parts[1]} ${parts[2]}"
-				2
-			} else { // 1 segment
+			try {
+				if (("${parts[0]} ${parts[1]} ${parts[2]}").lowercase() == "song of songs") { // 3 segments
+					args.book += " ${parts[1]} ${parts[2]}"
+					2
+				} else { // 1 segment
+					0
+				}
+			}catch (e: IndexOutOfBoundsException) {
 				0
 			}
 		}
@@ -297,16 +313,4 @@ fun parseVerse(raw: String): Args {
 	if (isDebug)
 		println("debug: $args")
 	return args
-}
-
-fun read(name: String): String {
-	val file = File(name)
-	val sc = Scanner(file)
-	var buff = ""
-	while (sc.hasNextLine()) {
-		val data = sc.nextLine()
-		buff += data
-	}
-	sc.close()
-	return buff
 }

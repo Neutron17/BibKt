@@ -22,7 +22,7 @@ object I18n {
 			try {
 				bundle = ResourceBundle.getBundle(MESSAGES_KEY)
 			} catch (e: MissingResourceException) {
-				System.err.println(e.message)
+				System.err.println(e.localizedMessage)
 				locale = Locale.ENGLISH
 				bundle = ResourceBundle.getBundle(MESSAGES_KEY)
 			}

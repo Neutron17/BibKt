@@ -1,6 +1,7 @@
 package com.neutron
 
 import java.io.*
+import java.util.*
 
 internal object Writer {
 	fun bufferedWriter(text: String, path: String) {
@@ -36,4 +37,16 @@ internal object Writer {
 			println("COULD NOT LOG!!")
 		}
 	}
+}
+
+fun read(name: String): String {
+	val file = File(name)
+	val sc = Scanner(file)
+	var buff = ""
+	while (sc.hasNextLine()) {
+		val data = sc.nextLine()
+		buff += data
+	}
+	sc.close()
+	return buff
 }
